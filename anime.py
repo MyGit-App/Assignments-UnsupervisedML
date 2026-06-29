@@ -81,12 +81,99 @@ st.set_page_config(page_title="Anime Dashboard", layout="wide")
 
 st.title("🎌 Anime Analytics & Recommendation Dashboard")
 
-tabs = st.tabs(["🤖 Recommender", "🔍 Explore"])
+tabs = st.tabs(["📊 EDA", "📈 Visualizations", "🤖 Recommender", "🔍 Explore"])
 
 # ---------------------------------------------------------
 # TAB 1 — EDA
 # ---------------------------------------------------------
 with tabs[0]:
+    st.header("📊 Exploratory Data Analysis")
+
+    st.subheader("Dataset Overview")
+    st.write(anime_fulldata.head())
+
+    st.subheader("Missing Values")
+    st.write(anime_fulldata.isna().sum())
+
+    st.subheader("Descriptive Statistics")
+    st.write(anime_fulldata[['user_rating', 'rating', 'episodes', 'members']].describe())
+
+    st.subheader("Top Genres")
+    genres = anime_fulldata['genre'].dropna().str.split(', ').explode()
+    st.write(genres.value_counts().head(20))
+
+# ---------------------------------------------------------
+# TAB 2 — VISUALIZATIONS
+# ---------------------------------------------------------
+with tabs[1]:
+    st.header("📈 Interactive Visualizations (Plotly)")
+
+    # User Rating Distribution
+    fig1 = px.histogram(
+        anime_fulldata,
+        x="user_rating",
+        nbins=10,
+        title="User Rating Distribution",
+        color_discrete_sequence=["#636EFA"]
+    )
+    st.plotly_chart(fig1, use_container_width=True)
+
+    # Anime Rating Distribution
+    fig2 = px.histogram(
+        anime_fulldata,
+        x="rating",
+        nbins=20,
+        title="Anime Rating Distribution",
+        color_discrete_sequence=["#EF553B"]
+    )
+    st.plotly_chart(fig2, use_container_width=True)
+
+    # Episodes Distribution
+    fig3 = px.histogram(
+        anime_fulldata,
+        x="episodes",
+        nbins=30,
+        title="Episodes Distribution",
+        color_discrete_sequence=["#00CC96"]
+    )
+    st.plotly_chart(fig3, use_container_width=True)
+
+    # Top Genres
+    genre_counts = genres.value_counts().reset_index()
+    genre_counts.columns = ['genre', 'count']
+
+    fig4 = px.bar(
+        genre_counts.head(20),
+        x="count",
+        y="genre",
+        orientation="h",
+        title="Top 20 Genres",
+        color="count",
+        color_continuous_scale="Viridis"
+    )
+    fig4.update_layout(yaxis={'categoryorder': 'total ascending'})
+    st.plotly_chart(fig4, use_container_width=True)
+
+    # Correlation Heatmap
+    corr = anime_fulldata[['user_rating', 'rating', 'members']].corr()
+
+    fig5 = go.Figure(
+        data=go.Heatmap(
+            z=corr.values,
+            x=corr.columns,
+            y=corr.columns,
+            colorscale="RdBu",
+            zmin=-1,
+            zmax=1
+        )
+    )
+    fig5.update_layout(title="Correlation Heatmap")
+    st.plotly_chart(fig5, use_container_width=True)
+
+# ---------------------------------------------------------
+# TAB 3 — RECOMMENDER
+# ---------------------------------------------------------
+with tabs[2]:
     st.header("🤖 Anime Recommendation System")
 
     selected_title = st.selectbox("Select an Anime", anime_meta['name'].unique())
@@ -99,16 +186,11 @@ with tabs[0]:
 # ---------------------------------------------------------
 # TAB 4 — EXPLORE
 # ---------------------------------------------------------
-with tabs[1]:
+with tabs[3]:
     st.header("🔍 Explore Anime")
 
-    title = st.text_input("Write something", key="user_text")
+    search = st.text_input("Search Anime Title")
 
-    if title != "":
-        results = anime_meta[anime_meta['name'].str.contains(title, case=False)]
-
+    if search:
+        results = anime_meta[anime_meta['name'].str.contains(search, case=False)]
         st.write(results[['anime_id', 'name', 'genre', 'type', 'rating', 'episodes', 'members']])
-
-    
-
-        
